@@ -113,7 +113,10 @@ dbc.CardHeader("Parametres", className="text-white fw-bold", style={"backgroundC
                     html.Label("3. Seuil Canicule :", className="fw-bold text-danger"),
                     dcc.Slider(id='slider-seuil', min=25, max=40, step=1, value=30, marks={i: str(i) for i in range(25, 41, 5)}),
                     html.Hr(),
-                    html.Label("4. Annee Zoom :", className="fw-bold"),
+                    html.Label("4. Seuil Gel :", className="fw-bold text-info"), # text-info pour le bleu (froid)
+                    dcc.Slider(id='slider-seuil-gel', min=-25, max=0, step=1, value=0, marks={i: str(i) for i in range(-25, 7, 3)}),
+                    html.Hr(),
+                    html.Label("5. Annee Zoom :", className="fw-bold"),
                     dcc.Dropdown(id='dd-annee', options=[{'label': str(a), 'value': a} for a in liste_annees], value=2003, clearable=False, className="mb-3"),
                 ])
             ], className="shadow sticky-top", style={"top": "20px"})
@@ -151,6 +154,7 @@ dbc.CardHeader("Parametres", className="text-white fw-bold", style={"backgroundC
 
                     dbc.Tab(label="Impacts", tab_id="tab-impacts", children=[
                         dbc.Card([dbc.CardHeader("Jours de Canicule"), dbc.CardBody(dcc.Graph(id='g-simulateur'))], className="shadow-sm border-0 mb-3 mt-3"),
+                        dbc.Col(dbc.Card([dbc.CardHeader("Jours de Gel (Froid)"), dbc.CardBody(dcc.Graph(id='g-gel'))], className="shadow-sm border-0 mb-3 mt-3"), width=12, lg=6),
                     ]),
                 ], id="tabs", active_tab="tab-synthese")
             ], id="tabs-container")
@@ -186,7 +190,8 @@ def update_cities(region, current):
 @app.callback(
    [Output('g-compare', 'figure'), Output('g-master', 'figure'),
     Output('g-detail-ref', 'figure'), Output('g-detail-main', 'figure'),
-    Output('g-heatmap', 'figure'), Output('g-simulateur', 'figure'), Output('g-saisons', 'figure'),
+    Output('g-heatmap', 'figure'), Output('g-simulateur', 'figure'), Output('g-gel', 'figure'),
+    Output('g-saisons', 'figure'),
     Output('kpi-mean', 'children'), Output('kpi-max', 'children'), Output('kpi-max-date', 'children'), Output('kpi-delta', 'children'),
     Output('dd-annee', 'value'),
     Output('resume-elu', 'children'),
@@ -197,11 +202,11 @@ def update_cities(region, current):
     Output('tab-container-details', 'style')
    ],
    [Input('dd-region', 'value'), Input('dd-ville', 'value'),
-    Input('slider-seuil', 'value'), Input('dd-annee', 'value'),
+    Input('slider-seuil', 'value'), Input('slider-seuil-gel', 'value'),
+    Input('dd-annee', 'value'),
     Input('g-master', 'clickData'), Input('switch-mode-elu', 'value')]
 )
-def update_charts(region, ville, seuil, annee_dd, click_data, mode_elu):
-    # --- STYLE PAR DEFAUT  ---
+def update_charts(region, ville, seuil, seuil_gel, annee_dd, click_data, mode_elu):
     style_resume = {'display': 'none'}
     style_sidebar = {'display': 'block'}
     width_graphs = 9
@@ -212,7 +217,7 @@ def update_charts(region, ville, seuil, annee_dd, click_data, mode_elu):
 
     if not ville:
         empty = go.Figure()
-        return [empty]*7 + ["-", "-", "-", "-", annee_dd, "", style_resume, style_sidebar, width_graphs, style_tabs_complex, style_tabs_complex]
+        return [empty]*8 + ["-", "-", "-", "-", annee_dd, "", style_resume, style_sidebar, width_graphs, style_tabs_complex, style_tabs_complex]
 
     annee = click_data['points'][0]['customdata'] if (ctx.triggered_id == 'g-master' and click_data) else annee_dd
 
@@ -241,7 +246,7 @@ def update_charts(region, ville, seuil, annee_dd, click_data, mode_elu):
         df_vil_year = ts_ville.resample('YE')['temp'].mean()
     except:
         err = go.Figure().add_annotation(text="Donnees indisponibles", showarrow=False)
-        return [err]*7 + ["Err", "Err", "-", "Err", annee, "", style_resume, style_sidebar, width_graphs, style_tabs_complex, style_tabs_complex]
+        return [err]*8 + ["Err", "Err", "-", "Err", annee, "", style_resume, style_sidebar, width_graphs, style_tabs_complex, style_tabs_complex]
 
     # Calcul des KPIs
     kpi_mean = f"{df_vil_year.mean():.1f}°C"
@@ -360,12 +365,18 @@ def update_charts(region, ville, seuil, annee_dd, click_data, mode_elu):
     fig_h = px.imshow(data_ecart, color_continuous_scale="RdBu_r", origin='lower', aspect="auto", zmin=-4, zmax=4)
     fig_h.update_layout(template="plotly_white", height=400, margin=dict(l=40, r=20, t=20, b=40))
 
-    # G6 Jours Canicule
+   # G6 Jours Canicule
     days = ts_ville[ts_ville['temp'] > seuil].resample('YE')['temp'].count().reindex(df_vil_year.index, fill_value=0)
     fig_s = px.bar(x=days.index.year, y=days.values, color=days.values, color_continuous_scale="OrRd")
-    fig_s.update_layout(template="plotly_white", xaxis_title="Annee", yaxis_title="Jours > seuil", margin=dict(l=40, r=20, t=20, b=40))
+    fig_s.update_layout(template="plotly_white", xaxis_title="Annee", yaxis_title=f"Jours > {seuil}°C", margin=dict(l=40, r=20, t=20, b=40))
 
-    # G7 Saisons
+    # G7 Jours de Gel
+    days_gel = ts_ville[ts_ville['temp'] < seuil_gel].resample('YE')['temp'].count().reindex(df_vil_year.index, fill_value=0)
+    fig_gel = px.bar(x=days_gel.index.year, y=days_gel.values, color=days_gel.values, color_continuous_scale="Blues_r")
+    fig_gel.update_layout(template="plotly_white", xaxis_title="Annee", yaxis_title=f"Jours < {seuil_gel}°C", margin=dict(l=40, r=20, t=20, b=40))
+
+
+    # G8 Saisons
     df_saison = ts_ville.copy()
     saison_map = {12:'Hiver', 1:'Hiver', 2:'Hiver', 3:'Printemps', 4:'Printemps', 5:'Printemps', 6:'Ete', 7:'Ete', 8:'Ete', 9:'Automne', 10:'Automne', 11:'Automne'}
     df_saison['Saison'] = df_saison.index.month.map(saison_map)
@@ -376,7 +387,7 @@ def update_charts(region, ville, seuil, annee_dd, click_data, mode_elu):
             fig_saisons.add_trace(go.Scatter(x=df_saison_yearly.index, y=df_saison_yearly[s], name=s, mode='lines'))
     fig_saisons.update_layout(template="plotly_white", xaxis_title="Annee", margin=dict(l=40, r=20, t=20, b=40))
 
-    return (fig_c, fig_m, fig_ref, fig_main, fig_h, fig_s, fig_saisons,
+    return (fig_c, fig_m, fig_ref, fig_main, fig_h, fig_s, fig_gel, fig_saisons,
             kpi_mean, kpi_max, kpi_max_date, kpi_delta, annee,
             texte_resume, style_resume, style_sidebar, width_graphs, style_tabs_complex, style_tabs_complex)
 
