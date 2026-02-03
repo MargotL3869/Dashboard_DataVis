@@ -1,12 +1,10 @@
 Problématique :
-Comment permettre aux décideurs locaux (collectivités) de visualiser simplement l’évolution climatique sur leur propre territoire
-depuis 75 ans (1950–2025), afin de justifier des politiques d’adaptation ?
+Comment contextualiser l'évolution climatique locale en la comparant à d'autres échelles (villes voisines, pays étrangers)
+et à d'autres facteurs (précipitations, gel) pour mieux anticiper les chocs climatiques d'un territoire ?
 
 
-
-
-
-
+Sous-question associée : La trajectoire climatique de notre commune est-elle une exception,
+ou suit-elle un modèle que d'autres pays (comme l'Espagne ou le Canada) ont déjà traversé ?
 
 
 
