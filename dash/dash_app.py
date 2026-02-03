@@ -11,7 +11,7 @@ import numpy as np
 
 # 1. CHARGEMENT DES DONNÉES
 
-print(">> Demarrage de l'application...")
+print("Demarrage de l'application...")
 
 base_script = Path(__file__).resolve().parent
 dossier_data = base_script.parent / "Donnees"
