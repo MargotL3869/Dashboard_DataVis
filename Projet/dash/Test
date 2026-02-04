@@ -1,0 +1,44 @@
+import os
+import zipfile
+from pathlib import Path
+
+# Chemin vers vos données (Mettez le bon chemin si besoin)
+dossier_data = Path(r"C:\Users\margo\OneDrive\Documents\M1 SSD\Data Visualisation\Dashboard_Laignel\Dashboard_DataVis\Projet\Donnees\DonneesTempPrecipitation")
+
+print(f"🔧 Nettoyage du dossier : {dossier_data}")
+
+# On parcourt tous les fichiers .nc du dossier
+for fichier in dossier_data.glob("*.nc"):
+    try:
+        # On vérifie si c'est secrètement un ZIP
+        if zipfile.is_zipfile(fichier):
+            print(f"📦 ZIP détecté déguisé en .nc : {fichier.name}")
+
+            # 1. On renomme en .zip
+            nouveau_nom_zip = fichier.with_suffix('.zip')
+            os.rename(fichier, nouveau_nom_zip)
+
+            # 2. On extrait
+            with zipfile.ZipFile(nouveau_nom_zip, 'r') as zip_ref:
+                # On regarde quel est le nom du fichier à l'intérieur
+                nom_interne = zip_ref.namelist()[0]
+                zip_ref.extractall(dossier_data)
+
+            # 3. Le fichier extrait s'appelle souvent 'data.nc' ou autre
+            fichier_extrait = dossier_data / nom_interne
+
+            # 4. On le renomme avec le nom correct (ex: meteo_france_1950_1954.nc)
+            if fichier_extrait.exists():
+                # On supprime le zip pour faire propre
+                os.remove(nouveau_nom_zip)
+                # On renomme le fichier extrait avec le nom d'origine
+                os.rename(fichier_extrait, fichier)
+                print(f"✅ Réparé : {fichier.name} est maintenant un vrai NetCDF !")
+
+        else:
+            print(f"👍 {fichier.name} est déjà valide.")
+
+    except Exception as e:
+        print(f"⚠️ Erreur sur {fichier.name} : {e}")
+
+print("\n🎉 Terminé ! Essayez de relancer votre Dashboard.")
