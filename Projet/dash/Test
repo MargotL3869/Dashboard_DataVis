@@ -1,44 +1,68 @@
-import os
-import zipfile
+import xarray as xr
 from pathlib import Path
+import numpy as np
 
-# Chemin vers vos données (Mettez le bon chemin si besoin)
+# --- CONFIGURATION ---
+# Mets le chemin vers ton dossier de données
 dossier_data = Path(r"C:\Users\margo\OneDrive\Documents\M1 SSD\Data Visualisation\Dashboard_Laignel\Dashboard_DataVis\Projet\Donnees\DonneesTempPrecipitation")
 
-print(f"🔧 Nettoyage du dossier : {dossier_data}")
+print(f"🕵️‍♂️ INSPECTION APPROFONDIE : {dossier_data}")
+print("=" * 60)
 
-# On parcourt tous les fichiers .nc du dossier
-for fichier in dossier_data.glob("*.nc"):
+fichiers = sorted(list(dossier_data.glob("*.nc")))
+
+if not fichiers:
+    print("❌ Aucun fichier trouvé ! Vérifie le chemin.")
+    exit()
+
+datasets_infos = []
+
+for f in fichiers:
+    print(f"\n📄 FICHIER : {f.name}")
     try:
-        # On vérifie si c'est secrètement un ZIP
-        if zipfile.is_zipfile(fichier):
-            print(f"📦 ZIP détecté déguisé en .nc : {fichier.name}")
+        # On ouvre sans charger tout en mémoire
+        with xr.open_dataset(f) as ds:
 
-            # 1. On renomme en .zip
-            nouveau_nom_zip = fichier.with_suffix('.zip')
-            os.rename(fichier, nouveau_nom_zip)
+            # 1. Lister les Dimensions
+            dims = dict(ds.dims)
+            print(f"   📏 Dimensions : {dims}")
 
-            # 2. On extrait
-            with zipfile.ZipFile(nouveau_nom_zip, 'r') as zip_ref:
-                # On regarde quel est le nom du fichier à l'intérieur
-                nom_interne = zip_ref.namelist()[0]
-                zip_ref.extractall(dossier_data)
+            # 2. Vérifier la présence de 'expver' (le tueur de fusion)
+            if 'expver' in ds.coords:
+                print("   ⚠️ ALERTE : Dimension 'expver' détectée (Données mixtes) !")
 
-            # 3. Le fichier extrait s'appelle souvent 'data.nc' ou autre
-            fichier_extrait = dossier_data / nom_interne
+            # 3. Lister les Variables de données (Température, Pluie...)
+            vars_data = list(ds.data_vars)
+            print(f"   📊 Variables  : {vars_data}")
+            datasets_infos.append(set(vars_data))
 
-            # 4. On le renomme avec le nom correct (ex: meteo_france_1950_1954.nc)
-            if fichier_extrait.exists():
-                # On supprime le zip pour faire propre
-                os.remove(nouveau_nom_zip)
-                # On renomme le fichier extrait avec le nom d'origine
-                os.rename(fichier_extrait, fichier)
-                print(f"✅ Réparé : {fichier.name} est maintenant un vrai NetCDF !")
+            # 4. Afficher un aperçu des données pour la première variable
+            if vars_data:
+                var_name = vars_data[0]
+                data_slice = ds[var_name]
 
-        else:
-            print(f"👍 {fichier.name} est déjà valide.")
+                # On prend le 1er jour, au milieu de la carte
+                try:
+                    # On essaie de prendre un point central
+                    valeur = data_slice.isel(time=0).mean().values
+                    print(f"   👀 Exemple valeur ({var_name}, t=0) : {valeur:.4f}")
+                except Exception as e:
+                    print(f"   ❌ Impossible de lire une valeur : {e}")
 
     except Exception as e:
-        print(f"⚠️ Erreur sur {fichier.name} : {e}")
+        print(f"   🔥 ERREUR CRITIQUE : Impossible d'ouvrir le fichier. {e}")
 
-print("\n🎉 Terminé ! Essayez de relancer votre Dashboard.")
+print("=" * 60)
+
+# --- ANALYSE DE COHÉRENCE ---
+print("🧠 DIAGNOSTIC FINAL :")
+if len(datasets_infos) > 1:
+    first_vars = datasets_infos[0]
+    all_match = all(v == first_vars for v in datasets_infos)
+
+    if all_match:
+        print("✅ TOUS les fichiers ont les mêmes noms de variables. C'est parfait.")
+    else:
+        print("❌ PROBLÈME DÉTECTÉ : Les noms des variables changent d'un fichier à l'autre !")
+        print("Il est impossible de fusionner des fichiers avec des noms différents.")
+        print("Exemple : certains ont 't2m', d'autres '2m_temperature'.")
