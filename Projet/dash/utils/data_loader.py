@@ -72,3 +72,4 @@ def load_all_data():
 
     print(">> [Data Loader] Données chargées avec succès.")
     return ds, ds_poids, df_villes
+
