@@ -29,6 +29,9 @@ Ajout
 - Ajout dans onglet impact : nbr jour de gel
 - comparaison france avec autre pays tel que le Canada, l'Espagne, Australie, Norvege,... --> Agrandir la problématique (a demander a la prof)
 
+Graphiques pour Precipitations : KPI : ville ayant eu le plus de précipitation a un  instant T d'une region choisi,
+ et la ville lz plus humide de france.
+ Graphiques saisons des pluies
 
 
 Mode elus :

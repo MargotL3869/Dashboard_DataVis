@@ -1,34 +1,56 @@
 import dash
-from dash import html, dcc
+from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
-# 1. Activation du mode "Pages"
-app = dash.Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.LUMEN])
+# On utilise un thème BOOTSTRAP pour que ce soit joli tout de suite
+app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# 2. Création du Menu latéral (Sidebar)
-sidebar = dbc.Card([
-    dbc.CardBody([
-        html.H4("🌍 Observatoire", className="fw-bold text-primary mb-3"),
+# --- LE STYLE CSS (Pour placer la sidebar à gauche) ---
+SIDEBAR_STYLE = {
+    "position": "fixed",
+    "top": 0,
+    "left": 0,
+    "bottom": 0,
+    "width": "18rem",
+    "padding": "2rem 1rem",
+    "background-color": "#f8f9fa", # Gris très clair
+}
+
+CONTENT_STYLE = {
+    "margin-left": "20rem", # Pour ne pas être caché par la sidebar
+    "margin-right": "2rem",
+    "padding": "2rem 1rem",
+}
+
+# --- LA BARRE LATÉRALE (Menu) ---
+sidebar = html.Div(
+    [
+        html.H3("Météo & Climat", className="display-6"),
         html.Hr(),
+        html.P(
+            "Navigation", className="lead"
+        ),
         dbc.Nav(
             [
-                dbc.NavLink(page['name'], href=page['path'], active="exact", className="mb-2 text-dark fw-bold")
+                dbc.NavLink(
+                    f"{page['name']}",
+                    href=page["relative_path"],
+                    active="exact"
+                )
                 for page in dash.page_registry.values()
             ],
             vertical=True,
             pills=True,
         ),
-    ])
-], className="vh-100 shadow-sm border-0", style={"backgroundColor": "#f8f9fa"})
+    ],
+    style=SIDEBAR_STYLE,
+)
 
-# 3. Layout principal (Menu à gauche + Contenu de la page à droite)
-app.layout = dbc.Container([
-    dbc.Row([
-        dbc.Col(sidebar, width=2, className="p-0 sticky-top"),
-
-        dbc.Col(dash.page_container, width=10, className="p-4")
-    ])
-], fluid=True, className="g-0")
+# --- L'ORGANISATION GÉNÉRALE ---
+app.layout = html.Div([
+    sidebar,
+    html.Div(dash.page_container, style=CONTENT_STYLE)
+])
 
 if __name__ == '__main__':
     app.run(debug=True)
