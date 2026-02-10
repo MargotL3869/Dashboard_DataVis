@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 
 # On utilise un thème BOOTSTRAP pour que ce soit joli tout de suite
 app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server  # Cette ligne est CRUCIALE pour le déploiement
 
 # --- LE STYLE CSS (Pour placer la sidebar à gauche) ---
 SIDEBAR_STYLE = {
