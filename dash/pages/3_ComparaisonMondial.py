@@ -1,96 +1,178 @@
 import dash
 from dash import dcc, html, callback, Input, Output
+import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 from pathlib import Path
 
 # Enregistrement de la page
-dash.register_page(__name__, path='/comparateur-pays', name='3.Comparateur International')
+dash.register_page(__name__, path='/comparateur-pays', name='3. Comparateur International')
 
-# 1. Gestion du chemin robuste
+# =============================================================================
+# 1. CHARGEMENT DES DONNÉES (LOCAL À LA PAGE)
+# =============================================================================
+
+# Définition du chemin relatif vers le CSV
+# On remonte : pages -> dash -> Projet -> Donnees
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PATH_DATA = BASE_DIR / "Donnees" / "DonneesTemperaturePays" / "GlobalLandTemperaturesByCountry.csv"
 
 def load_data():
+    """ Charge et nettoie les données internationales """
     if not PATH_DATA.exists():
-        print(f"ERREUR : Fichier introuvable à {PATH_DATA}")
+        print(f"[ERREUR] Fichier introuvable : {PATH_DATA}")
         return pd.DataFrame(columns=['dt', 'AverageTemperature', 'Country', 'Annee'])
 
-    df = pd.read_csv(PATH_DATA)
+    print(f">> [Page 3] Chargement du CSV International...")
+    # On ne charge que les colonnes utiles pour optimiser la mémoire
+    df = pd.read_csv(PATH_DATA, usecols=['dt', 'AverageTemperature', 'Country'])
     df['dt'] = pd.to_datetime(df['dt'])
     df['Annee'] = df['dt'].dt.year
     return df
 
-layout = html.Div([
-    html.H1("Analyse Climatique Internationale", style={'textAlign': 'center'}),
+# Chargement unique au démarrage
+df_monde = load_data()
+pays_disponibles = sorted(df_monde['Country'].unique()) if not df_monde.empty else []
 
-    html.Div([
-        html.Label("1. Sélectionnez les pays :"),
-        dcc.Dropdown(
-            id='selection-pays',
-            options=[], # Sera rempli par le callback ci-dessous
-            multi=True,
-            value=['France', 'Russia', 'Canada', 'Spain'],
-            className="mb-3"
-        ),
+THEME_COLOR = "#2C3E50"
 
-        html.Label("2. Choisir la période de comparaison :"),
-        dcc.RangeSlider(
-            id='slider-periode',
-            min=1750, # Berkeley Earth commence souvent très tôt
-            max=2025,
-            step=1,
-            value=[1900, 1950],
-            marks={i: str(i) for i in range(1750, 2050, 25)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        ),
-    ], style={'width': '80%', 'margin': 'auto', 'padding': '20px'}),
+# =============================================================================
+# 2. LAYOUT (INTERFACE)
+# =============================================================================
 
-    dcc.Graph(id='graphique-pays-temp'),
-])
+layout = dbc.Container([
+    # En-tête
+    dbc.Row([
+        dbc.Col(html.H1("Comparateur Climatique International", className="mt-4 fw-bold", style={"color": THEME_COLOR}), width=12),
+        dbc.Col(html.P("Analysez les tendances de température à travers le monde (Source: Berkeley Earth).", className="text-muted"), width=12)
+    ]),
 
-# CALLBACK 1 : Pour remplir la liste des pays au chargement de la page
+    # Contrôles
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("Paramètres de Comparaison", className="bg-primary text-white fw-bold"),
+                dbc.CardBody([
+                    html.Label("1. Sélectionner les pays :", className="fw-bold"),
+                    dcc.Dropdown(
+                        id='selection-pays',
+                        options=[{'label': p, 'value': p} for p in pays_disponibles],
+                        multi=True,
+                        value=['France', 'Spain', 'United States', 'China'], # Valeurs par défaut
+                        className="mb-3"
+                    ),
+
+                    html.Label("2. Période :", className="fw-bold"),
+                    dcc.RangeSlider(
+                        id='slider-periode',
+                        min=1850,
+                        max=2018,
+                        step=10,
+                        value=[1900, 2018],
+                        marks={i: str(i) for i in range(1850, 2020, 15)},
+                        tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                ])
+            ], className="shadow-sm mb-4")
+        ], width=12)
+    ]),
+
+    # KPIs Dynamiques
+    dbc.Row([
+        dbc.Col(dbc.Card(dbc.CardBody([
+            html.H6("Pays le + Chaud (Moyenne)", className="text-muted small fw-bold"),
+            html.H2(id="kpi-pays-chaud", className="text-danger fw-bold"),
+            html.Small(id="kpi-val-chaud", className="text-muted")
+        ])), width=12, md=4),
+
+        dbc.Col(dbc.Card(dbc.CardBody([
+            html.H6("Pays le + Froid (Moyenne)", className="text-muted small fw-bold"),
+            html.H2(id="kpi-pays-froid", className="text-info fw-bold"),
+            html.Small(id="kpi-val-froid", className="text-muted")
+        ])), width=12, md=4),
+
+        dbc.Col(dbc.Card(dbc.CardBody([
+            html.H6("Tendance Globale (Sélection)", className="text-muted small fw-bold"),
+            html.H2(id="kpi-pays-trend", className="text-warning fw-bold"),
+            html.Small("Hausse moyenne sur la période", className="text-muted")
+        ])), width=12, md=4),
+    ], className="mb-4"),
+
+    # Graphique Principal
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody(dcc.Graph(id='graphique-pays-temp'))
+            ], className="shadow-sm")
+        ], width=12)
+    ])
+
+], fluid=True, className="bg-light pb-5")
+
+
+# =============================================================================
+# 3. CALLBACKS
+# =============================================================================
+
 @callback(
-    Output('selection-pays', 'options'),
-    Input('selection-pays', 'id') # Se déclenche une fois à l'apparition du dropdown
-)
-def fill_dropdown(_):
-    df = load_data()
-    if df.empty:
-        return []
-    pays_disponibles = sorted(df['Country'].unique())
-    return [{'label': p, 'value': p} for p in pays_disponibles]
-
-# CALLBACK 2 : Pour mettre à jour le graphique
-@callback(
-    Output('graphique-pays-temp', 'figure'),
+    [Output('graphique-pays-temp', 'figure'),
+     Output('kpi-pays-chaud', 'children'), Output('kpi-val-chaud', 'children'),
+     Output('kpi-pays-froid', 'children'), Output('kpi-val-froid', 'children'),
+     Output('kpi-pays-trend', 'children')],
     [Input('selection-pays', 'value'),
      Input('slider-periode', 'value')]
 )
-def update_graph(pays_selectionnes, periode):
-    df = load_data()
+def update_graph_and_kpis(pays_selectionnes, periode):
+    # Sécurité : Si données vides ou pas de pays
+    if df_monde.empty:
+        return px.line(title="Erreur : Données introuvables"), "-", "-", "-", "-", "-"
 
-    if df.empty or not pays_selectionnes:
-        return px.line(title="Aucune donnée ou aucun pays sélectionné")
+    if not pays_selectionnes:
+        return px.line(title="Veuillez sélectionner au moins un pays"), "-", "-", "-", "-", "-"
 
-    # Masques
-    mask = (df['Country'].isin(pays_selectionnes)) & \
-           (df['Annee'] >= periode[0]) & \
-           (df['Annee'] <= periode[1])
+    # 1. Filtrage (Pays + Dates)
+    mask = (df_monde['Country'].isin(pays_selectionnes)) & \
+           (df_monde['Annee'] >= periode[0]) & \
+           (df_monde['Annee'] <= periode[1])
 
-    df_filtre = df[mask]
+    df_filtre = df_monde[mask].copy()
 
-    # Aggrégation annuelle
+    if df_filtre.empty:
+        return px.line(title="Pas de données pour cette période"), "-", "-", "-", "-", "-"
+
+    # 2. Aggrégation annuelle pour le graphique (plus léger que mensuel)
     df_annuel = df_filtre.groupby(['Country', 'Annee'])['AverageTemperature'].mean().reset_index()
 
+    # 3. Calcul des KPIs
+    # Moyenne globale par pays sur la période sélectionnée
+    moyennes_pays = df_annuel.groupby('Country')['AverageTemperature'].mean()
+
+    # Pays le plus chaud
+    if not moyennes_pays.empty:
+        top_hot = moyennes_pays.idxmax()
+        val_hot = moyennes_pays.max()
+        top_cold = moyennes_pays.idxmin()
+        val_cold = moyennes_pays.min()
+    else:
+        top_hot, val_hot, top_cold, val_cold = "-", 0, "-", 0
+
+    # Tendance (Moyenne des 5 dernières années - Moyenne des 5 premières années de la sélection)
+    # On prend la moyenne de tous les pays sélectionnés pour avoir une tendance globale
+    debut = df_annuel[df_annuel['Annee'] <= periode[0] + 5]['AverageTemperature'].mean()
+    fin = df_annuel[df_annuel['Annee'] >= periode[1] - 5]['AverageTemperature'].mean()
+    delta = fin - debut
+    txt_delta = f"{delta:+.1f}°C"
+
+    # 4. Graphique
     fig = px.line(
         df_annuel,
         x='Annee',
         y='AverageTemperature',
         color='Country',
-        title=f"Évolution des températures ({periode[0]} - {periode[1]})",
+        title=f"Évolution Comparée ({periode[0]} - {periode[1]})",
         labels={'AverageTemperature': 'Temp. Moyenne (°C)', 'Annee': 'Année'},
-        template='plotly_white'
     )
+    # Utilisation d'un template standard inclus dans Plotly
+    fig.update_layout(template='plotly_white', margin=dict(l=40, r=20, t=40, b=40), hovermode="x unified")
 
-    return fig
+    return fig, top_hot, f"{val_hot:.1f}°C", top_cold, f"{val_cold:.1f}°C", txt_delta

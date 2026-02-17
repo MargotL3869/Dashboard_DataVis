@@ -3,6 +3,8 @@ import pandas as pd
 from pathlib import Path
 import sys
 
+
+
 def load_all_data():
     """
     Charge l'ensemble des datasets (Villes + Météo + Poids)
@@ -48,6 +50,8 @@ def load_all_data():
     if not chemin_poids.exists():
         # Fallback si le fichier n'est pas là
         chemin_poids = data_dir / "DonneesRegion" / "poids_regions_finie.nc"
+
+
 
     try:
         ds = xr.open_dataset(chemin_nc)

@@ -3,7 +3,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # On l'enregistre comme la page d'accueil (path='/')
-dash.register_page(__name__, path='/contexte', name='Accueil & Contexte', order=0)
+dash.register_page(__name__, path='/Contexte', name='Accueil & Contexte', order=0)
 
 layout = html.Div([
     # Titre Principal
