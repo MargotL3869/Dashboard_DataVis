@@ -3,7 +3,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # On l'enregistre comme la page d'accueil (path='/')
-dash.register_page(__name__, path='/contexte', name='Accueil & Contexte', order=0)
+dash.register_page(__name__, path='/Contexte', name='Accueil & Contexte', order=0)
 
 layout = html.Div([
     # Titre Principal
@@ -14,14 +14,14 @@ layout = html.Div([
         dbc.CardBody([
             html.H4("🎯 La Problématique", className="card-title"),
             html.P(
-                "Au-delà du constat local, comment l'analyse comparative multi-échelles (entre villes et entre pays)"
-                "et le croisement des indicateurs (température/pluie) permettent-ils de diagnostiquer la vulnérabilité "
-                "spécifique d'un territoire pour mieux cibler ses stratégies d'adaptation ?",
+                "Comment l'analyse comparative multi-échelles (entre villes et entre pays) "
+                "permet-elle de diagnostiquer la vulnérabilité thermique d'un territoire et de situer "
+                "le réchauffement local dans une perspective globale pour mieux cibler les stratégies d'adaptation ?",
                 className="card-text",
                 style={"font-style": "italic", "font-size": "1.1rem"}
             ),
         ]),
-        className="mb-4 shadow-sm" # Ajoute une petite ombre et de la marge
+        className="mb-4 shadow-sm"
     ),
 
     # BLOC 2 : LE PERSONA
@@ -30,9 +30,9 @@ layout = html.Div([
             html.H4("👤 Le Persona", className="card-title"),
             html.H6("Profil : Marc, Chargé de Mission Plan Climat", className="text-muted"),
             html.Ul([
-               html.Li("Besoin : Disposer d'indicateurs fiables pour justifier les actions politiques."),
+               html.Li("Besoin : Disposer d'indicateurs de température fiables pour justifier les actions politiques."),
                 html.Li("Contrainte : Doit pouvoir communiquer ces chiffres au grand public et aux élus simplement."),
-                html.Li("Objectif : Identifier les seuils critiques (canicules, sécheresses) pour prioriser les actions."),
+                html.Li("Objectif : Comparer les trajectoires locales avec les tendances nationales et mondiales."),
             ]),
         ]),
         className="mb-4 shadow-sm"
@@ -40,35 +40,31 @@ layout = html.Div([
 
     html.Hr(),
 
-    # BLOC 3 : GUIDE DES PAGES (Réponse à la problématique)
-    html.H3("🧭 Comment ce dashboard répond à la problématique :"),
+    # BLOC 3 : GUIDE DES PAGES
+    html.H3("🧭 Parcours de l'analyse :"),
     html.Br(),
 
     dbc.Row([
         # Page 1
         dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5("1. Climat Local", className="text-primary"),
-            html.P("Diagnostic immédiat : Fait-il vraiment plus chaud qu'avant ici ? Analyse des températures historiques.")
-        ])), width=6),
+            html.H5("🌡️ 1. Climat Local", className="text-primary"),
+            html.P("Diagnostic territorial : Analyse précise des températures historiques pour confirmer le réchauffement à l'échelle locale.")
+        ]), className="h-100"), width=4),
 
         # Page 2
         dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5("2. Précipitations", className="text-primary"),
-            html.P("Gestion de l'eau : Analyse des pluies pour anticiper les périodes de sécheresse ou d'inondation de 2010 à 2024.")
-        ])), width=6),
-    ], className="mb-3"),
+            html.H5("🏙️ 2. Comparaison Villes", className="text-primary"),
+            html.P("Benchmarking National : Comment notre ville se situe-t-elle par rapport aux autres territoires français ?")
+        ]), className="h-100"), width=4),
 
-    dbc.Row([
         # Page 3
         dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5("3. Comparateur", className="text-primary"),
-            html.P("Benchmarking : Comment notre ville se situe-t-elle par rapport aux autres villes françaises ?")
-        ])), width=6),
+            html.H5("🌍 3. International", className="text-primary"),
+            html.P("Perspective Globale : Mise en regard des trajectoires climatiques françaises avec les grandes puissances mondiales.")
+        ]), className="h-100"), width=4),
+    ], className="mb-3"),
 
-        # Page 4
-        dbc.Col(dbc.Card(dbc.CardBody([
-            html.H5("4. International", className="text-primary"),
-            html.P("Perspective globale : Mise en regard des données locales avec les tendances mondiales.")
-        ])), width=6),
-    ])
+    html.Div([
+        html.Small("⚠️ Note technique : Les données internationales sont basées sur les moyennes annuelles de température terrestre par pays.")
+    ], style={'textAlign': 'center', 'color': 'gray', 'marginTop': '20px'})
 ])

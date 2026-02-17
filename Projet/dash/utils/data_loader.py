@@ -3,6 +3,8 @@ import pandas as pd
 from pathlib import Path
 import sys
 
+
+
 def load_all_data():
     """
     Charge l'ensemble des datasets (Villes + Météo + Poids)
@@ -14,12 +16,16 @@ def load_all_data():
     # On suppose que ce fichier est dans /Projet/dash/utils/
     # On remonte : utils -> dash -> Projet -> Donnees
     base_dir = Path(__file__).resolve().parent.parent.parent
+
     data_dir = base_dir / "Donnees"
 
-    # 2. Chargement des Villes
+# 2. Chargement des Villes
     chemin_villes = data_dir / "DonneesVilles" / "villes_avec_regions.parquet"
+
     if not chemin_villes.exists():
-        sys.exit(f"[ERREUR] Fichier villes introuvable : {chemin_villes}")
+    # Petit tips : affiche le chemin testé pour debugger
+       print(f"DEBUG: Je cherche ici -> {chemin_villes}")
+       sys.exit(f"[ERREUR] Fichier villes introuvable.")
 
     df_villes = pd.read_parquet(chemin_villes)
     df_villes["Region_Assignee"] = df_villes["Region_Assignee"].fillna("Hors Region").astype(str).str.strip()
@@ -44,6 +50,8 @@ def load_all_data():
     if not chemin_poids.exists():
         # Fallback si le fichier n'est pas là
         chemin_poids = data_dir / "DonneesRegion" / "poids_regions_finie.nc"
+
+
 
     try:
         ds = xr.open_dataset(chemin_nc)
